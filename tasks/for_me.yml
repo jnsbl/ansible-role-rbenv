@@ -78,8 +78,23 @@
     - "{{ latest_versions.results }}"
 - debug: var=rbenv_ruby_versions_dict
 
+- set_fact:
+    rbenv_shell_type: "{{ lookup('env','SHELL')|default('/bin/bash') | basename }}"
+  when: rbenv_ruby_versions is defined
+- debug: var=rbenv_shell_type
+  when: rbenv_ruby_versions is defined
+
+- set_fact:
+    rbenv_install_ruby_command: $SHELL -ic "rbenv install {{ item.value }}"
+    when: rbenv_ruby_versions is defined and rbenv_shell_type == "zsh"
+- set_fact:
+    rbenv_install_ruby_command: $SHELL -lc "rbenv install {{ item.value }}"
+    when: rbenv_ruby_versions is defined and rbenv_shell_type != "zsh"
+- debug: var=rbenv_install_ruby_command
+  when: rbenv_ruby_versions is defined
+
 - name: Install Ruby interpreters {{ rbenv_ruby_versions_dict.values() }}
-  shell: $SHELL -lc "rbenv install {{ item.value }}"
+  shell: "{{ rbenv_install_ruby_command }}"
   args:
     creates: "{{ rbenv_root }}/versions/{{ item.value }}/bin/ruby"
   with_dict: "{{ rbenv_ruby_versions_dict }}"
